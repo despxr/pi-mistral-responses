@@ -1,0 +1,17 @@
+{
+  "name": "pi-mistral-responses",
+  "version": "1.0.0",
+  "description": "Mistral models over the stateless Responses API for pi, with prompt caching and cost tracking",
+  "type": "module",
+  "main": "index.ts",
+  "license": "MIT",
+  "keywords": ["pi", "pi-extension", "mistral", "responses-api", "prompt-caching"],
+  "author": "despxr",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/despxr/pi-mistral-responses.git"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}
