@@ -22,7 +22,37 @@ pi -m mistral-responses/deepseek-v4-1-flash-1017
 
 Or use `/model` in the TUI.
 
-Requires `MISTRAL_API_KEY` in the environment.
+## Make it the default
+
+Both keys are required — `defaultModel` alone is silently ignored and pi falls
+back to its built-in `mistral` provider on Chat Completions.
+
+```json
+// ~/.pi/agent/settings.json
+{
+  "defaultProvider": "mistral-responses",
+  "defaultModel": "deepseek-v4-1-flash-1017"
+}
+```
+
+## Credentials
+
+Stored in `~/.pi/agent/auth.json`, one entry per provider id:
+
+```json
+{
+  "mistral":           { "type": "api_key", "key": "..." },
+  "mistral-responses": { "type": "api_key", "key": "..." }
+}
+```
+
+Both entries are needed: the extension registers a *separate* provider id, and
+pi resolves credentials by id rather than by the `apiKey` string in the
+provider config. `MISTRAL_API_KEY` in the environment also works as a fallback.
+
+`pi auth check --provider mistral-responses` reports `provider_not_found` — it
+reads the static catalog and cannot see extension-registered providers. That is
+not a failure; the runtime resolves the credential fine.
 
 ## Models
 
