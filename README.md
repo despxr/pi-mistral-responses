@@ -56,14 +56,21 @@ not a failure; the runtime resolves the credential fine.
 
 ## Models
 
-| Model | Reasoning | Context | Cost (in/out per 1M) |
-|---|---|---|---|
-| `deepseek-v4-1-flash-1017` | ✅ | 1M | $0.30 / $1.20 |
-| `deepseek-v4-1-pro` | ✅ | 1M | $0.60 / $2.40 |
-| `zai-glm-5-3` | ✅ | 1M | $1.40 / $4.40 |
-| `zai-glm-5-3-flash` | ✅ | 1M | $0.15 / $0.50 |
-| `mistral-large-4` | ✅ | 1M | $0.70 / $2.10 |
-| `magistral-medium-latest` | ✅ | 262k | $2.00 / $5.00 |
+| Model | Reasoning | Vision | Context | Cost (in/out per 1M) |
+|---|---|---|---|---|
+| `deepseek-v4-1-flash-1017` | ✅ | ✅ | 1M | $0.30 / $1.20 |
+| `zai-glm-5-3` | ✅ | ❌ | 1M | $1.40 / $4.40 |
+| `zai-glm-5-3-flash` | ✅ | ✅ | 1M | $0.15 / $0.50 |
+| `mistral-large-4` | ✅ | ✅ | 1M | $0.70 / $2.10 |
+| `magistral-medium-latest` | ✅ | ✅ | 262k | $2.00 / $5.00 |
+
+Vision flags come from the live `capabilities.vision` values on
+`GET /v1/models`, not from pi's built-in catalog. The built-in catalog is stale
+for `deepseek-v4-1-flash-1017` and `zai-glm-5-3-flash`: it marks both text-only
+even though Mistral accepts `input_image` for them on `/v1/responses`.
+
+`deepseek-v4-1-pro` is intentionally not registered: Mistral's API returns
+`400 invalid_model` for it, so it is not a usable model id today.
 
 `thinkingLevelMap` mirrors what the built-in provider declares, so pi's reasoning controls keep working — unsupported levels clamp instead of sending a value the model rejects with a 400.
 

@@ -19,7 +19,6 @@
 /** USD per 1M tokens, from mistral.ai/pricing. */
 const COST = {
   "deepseek-v4-1-flash-1017": { input: 0.3, output: 1.2, cacheRead: 0.007, cacheWrite: 0 },
-  "deepseek-v4-1-pro": { input: 0.6, output: 2.4, cacheRead: 0.014, cacheWrite: 0 },
   "zai-glm-5-3": { input: 1.4, output: 4.4, cacheRead: 0.14, cacheWrite: 0 },
   "zai-glm-5-3-flash": { input: 0.15, output: 0.5, cacheRead: 0.03, cacheWrite: 0 },
   "mistral-large-4": { input: 0.7, output: 2.1, cacheRead: 0.07, cacheWrite: 0 },
@@ -38,14 +37,7 @@ const MODELS = [
     id: "deepseek-v4-1-flash-1017",
     name: "DeepSeek V4.1 Flash (Responses)",
     reasoning: true,
-    contextWindow: 1048576,
-    maxTokens: 128000,
-    thinkingLevelMap: { off: "none", minimal: null, low: "low", medium: null, high: "high", xhigh: null, max: "max" },
-  },
-  {
-    id: "deepseek-v4-1-pro",
-    name: "DeepSeek V4.1 Pro (Responses)",
-    reasoning: true,
+    input: ["text", "image"],
     contextWindow: 1048576,
     maxTokens: 128000,
     thinkingLevelMap: { off: "none", minimal: null, low: "low", medium: null, high: "high", xhigh: null, max: "max" },
@@ -62,6 +54,7 @@ const MODELS = [
     id: "zai-glm-5-3-flash",
     name: "GLM-5.3-Flash (Responses)",
     reasoning: true,
+    input: ["text", "image"],
     contextWindow: 1048576,
     maxTokens: 131072,
     thinkingLevelMap: { off: null, minimal: null, low: "low", medium: null, high: "high", xhigh: null, max: "max" },
