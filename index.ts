@@ -16,6 +16,29 @@
  *   pi -m mistral-responses/deepseek-v4-1-flash-1017
  */
 
+/**
+ * Mistral caps one Responses request at 20 images in total and rejects anything
+ * larger with `400 3051: Total number of images exceeds the maximum allowed of
+ * 20`. A long session that pastes screenshots or reads image files crosses that
+ * line, and from then on every turn fails: the transcript, not the new message,
+ * is what is too big. Pi keeps the transcript; this prunes the outgoing request
+ * instead, keeping the newest images and replacing older ones with a short text
+ * placeholder so the model still knows an image was there.
+ *
+ * `PI_MISTRAL_MAX_IMAGES` overrides the cap (`<= 0` disables pruning).
+ */
+const DEFAULT_MAX_IMAGES = 20;
+
+/**
+ * Prune a little below the cap so a session that keeps adding images does not
+ * rewrite the request prefix on every turn. Each rewrite invalidates the prompt
+ * cache from the first dropped image onward.
+ */
+const IMAGE_PRUNE_SLACK = 4;
+
+const OMITTED_IMAGE_TEXT =
+  "[image omitted: an older image was dropped to stay within the provider's per-request image limit]";
+
 /** USD per 1M tokens, from mistral.ai/pricing. */
 const COST = {
   "deepseek-v4-1-flash-1017": { input: 0.3, output: 1.2, cacheRead: 0.007, cacheWrite: 0 },
@@ -80,11 +103,73 @@ const MODELS = [
 ];
 
 /**
+ * Collect every `input_image` item in a Responses payload, in request order.
+ * Images live in user message content arrays and in `function_call_output`
+ * arrays, so walk nested arrays and objects rather than assuming one shape.
+ *
+ * @param {unknown} node
+ * @param {{ array: unknown[], index: number }[]} slots
+ */
+function collectImageSlots(node, slots) {
+  if (Array.isArray(node)) {
+    for (let index = 0; index < node.length; index++) {
+      const item = node[index];
+      if (!item || typeof item !== "object") continue;
+      if (item.type === "input_image") slots.push({ array: node, index });
+      else collectImageSlots(item, slots);
+    }
+    return;
+  }
+  if (node && typeof node === "object") {
+    for (const value of Object.values(node)) {
+      if (value && typeof value === "object") collectImageSlots(value, slots);
+    }
+  }
+}
+
+/**
+ * Drop the oldest images from a Responses payload until at most `maxImages`
+ * remain. Mutates the payload in place and returns it.
+ *
+ * @param {any} payload
+ * @param {number} maxImages
+ * @returns {any}
+ */
+export function pruneImages(payload, maxImages) {
+  if (!payload || typeof payload !== "object" || !Array.isArray(payload.input)) return payload;
+  const slots = [];
+  collectImageSlots(payload.input, slots);
+  if (slots.length <= maxImages) return payload;
+  const keep = Math.max(maxImages - IMAGE_PRUNE_SLACK, Math.ceil(maxImages * 0.8));
+  const dropCount = slots.length - keep;
+  for (let i = 0; i < dropCount; i++) {
+    const { array, index } = slots[i];
+    array[index] = { type: "input_text", text: OMITTED_IMAGE_TEXT };
+  }
+  return payload;
+}
+
+/** Cap from `PI_MISTRAL_MAX_IMAGES`, falling back to Mistral's limit. */
+function maxImagesPerRequest() {
+  const raw = process.env.PI_MISTRAL_MAX_IMAGES;
+  if (raw === undefined || raw.trim() === "") return DEFAULT_MAX_IMAGES;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : DEFAULT_MAX_IMAGES;
+}
+
+/**
  * pi extension entrypoint. pi calls the default export with its ExtensionAPI.
  *
  * @param {import("@earendil-works/pi-coding-agent").ExtensionAPI} pi
  */
 export default function mistralResponses(pi) {
+  pi.on("before_provider_request", (event, ctx) => {
+    if (ctx.model?.provider !== "mistral-responses") return;
+    const maxImages = maxImagesPerRequest();
+    if (maxImages <= 0) return;
+    return pruneImages(event.payload, maxImages);
+  });
+
   pi.registerProvider("mistral-responses", {
     name: "Mistral (Responses)",
     baseUrl: "https://api.mistral.ai/v1",
@@ -100,6 +185,9 @@ export default function mistralResponses(pi) {
       contextWindow: model.contextWindow,
       maxTokens: model.maxTokens,
       thinkingLevelMap: model.thinkingLevelMap,
+      // Mistral's hard per-request image cap. Pi does not enforce input limits
+      // yet, so the `before_provider_request` hook above is what actually prunes.
+      inputLimits: { images: { maxPerRequest: DEFAULT_MAX_IMAGES } },
     })),
   });
 }

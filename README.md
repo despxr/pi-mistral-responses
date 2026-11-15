@@ -74,6 +74,33 @@ even though Mistral accepts `input_image` for them on `/v1/responses`.
 
 `thinkingLevelMap` mirrors what the built-in provider declares, so pi's reasoning controls keep working — unsupported levels clamp instead of sending a value the model rejects with a 400.
 
+## Image limit
+
+Mistral caps a single Responses request at **20 images in total** and rejects
+anything larger:
+
+```
+400 3051: Total number of images exceeds the maximum allowed of 20.
+```
+
+Because pi replays the whole transcript, a long session that pastes screenshots
+or reads image files eventually crosses that line — and from then on *every*
+turn fails, including messages that add no images. The session is stranded.
+
+This extension prunes the outgoing request instead of the transcript. The newest
+images are kept; older ones become a short text placeholder, so the model still
+knows an image was there. The transcript on disk is never rewritten, and a
+session that is already stuck starts working again once the extension is loaded
+(restart or resume it).
+
+Pruning drops slightly below the cap, so a session that keeps adding images does
+not rewrite the request prefix on every turn (each rewrite invalidates the
+prompt cache from the first dropped image onward). Override the cap with
+`PI_MISTRAL_MAX_IMAGES`; `0` disables pruning.
+
+The models also declare `inputLimits.images.maxPerRequest: 20`. Pi does not
+enforce input limits yet, so the request hook is what actually prunes.
+
 ## Verified
 
 Captured on the wire through a local proxy:
