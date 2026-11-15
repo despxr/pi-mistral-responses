@@ -11,8 +11,14 @@ The Responses API carries reasoning as a first-class item that replays cleanly. 
 ## Install
 
 ```bash
-pi install /path/to/pi-mistral-responses
+pi install git:github.com/despxr/pi-mistral-responses
 ```
+
+A local checkout works too: `pi install /path/to/pi-mistral-responses`.
+
+The `pi.extensions` manifest in `package.json` is required for git and npm
+installs: managed packages only load resources declared there or under
+conventional directories, not a bare root `index.ts`.
 
 Then pick a model:
 

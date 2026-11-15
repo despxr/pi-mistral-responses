@@ -5,8 +5,11 @@
   "type": "module",
   "main": "index.ts",
   "license": "MIT",
-  "keywords": ["pi", "pi-extension", "mistral", "responses-api", "prompt-caching"],
+  "keywords": ["pi", "pi-extension", "pi-package", "mistral", "responses-api", "prompt-caching"],
   "author": "despxr",
+  "pi": {
+    "extensions": ["./index.ts"]
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/despxr/pi-mistral-responses.git"
